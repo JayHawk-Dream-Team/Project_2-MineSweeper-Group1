@@ -1,8 +1,27 @@
 import pygame 
 import random
 import time
+import os
 
 pygame.init()
+pygame.mixer.init()
+
+# Load sound effects
+SOUND_DIR = "Music_soundeffects"
+background_music = pygame.mixer.Sound(os.path.join(SOUND_DIR, "Backgroundmusic.wav"))
+select_sound = pygame.mixer.Sound(os.path.join(SOUND_DIR, "selectSpace.mp3"))
+flag_sound = pygame.mixer.Sound(os.path.join(SOUND_DIR, "placedFlag.mp3"))
+bomb_sound = pygame.mixer.Sound(os.path.join(SOUND_DIR, "bomb.mp3"))
+win_sound = pygame.mixer.Sound(os.path.join(SOUND_DIR, "win.mp3"))
+lose_sound = pygame.mixer.Sound(os.path.join(SOUND_DIR, "lose.mp3"))
+
+# Set volumes
+background_music.set_volume(0.2)  # Lower volume for background music
+select_sound.set_volume(0.7)
+flag_sound.set_volume(0.7)
+bomb_sound.set_volume(1.0)
+win_sound.set_volume(0.7)
+lose_sound.set_volume(0.7)
 
 NUM_BOMBS: int = 16
 BOARD_WIDTH: int = 500
@@ -176,6 +195,9 @@ def main():
 
     screen = pygame.display.set_mode((BOARD_WIDTH, BOARD_HEIGHT))
     pygame.display.set_caption("Minesweeper")
+    
+    # Start background music on loop
+    background_music.play(-1)  # -1 means loop indefinitely
 
     # Create a 2D grid
     grid = [[0 for _ in range(board_columns)] for _ in range(board_rows)]
@@ -263,6 +285,7 @@ def main():
                         if auto_solve(revealed, flagged, bombs, board_rows, board_columns):
                             game_won = True
                             game_over = True
+                            win_sound.play()
                     continue
                 
                 # Game board clicks (only if not game over)
@@ -275,8 +298,10 @@ def main():
                             if (row, col) not in revealed:
                                 if (row, col) in flagged:
                                     flagged.remove((row, col))
+                                    flag_sound.play()
                                 else:
                                     flagged.add((row, col))
+                                    flag_sound.play()
                         # Left click for revealing
                         elif event.button == 1:  # Left click
                             if (row, col) not in flagged:  # Can't reveal flagged cells
@@ -288,7 +313,11 @@ def main():
                                 if grid[row][col] == -1:
                                     revealed.add((row, col))
                                     game_over = True
+                                    bomb_sound.play()
+                                    pygame.time.wait(500)  # Wait for bomb sound
+                                    lose_sound.play()
                                 else:
+                                    select_sound.play()
                                     new_reveals = flood_fill(grid, row, col)
                                     revealed.update(new_reveals)
                                     
@@ -297,6 +326,7 @@ def main():
                                     if len(revealed) == total_safe_cells:
                                         game_won = True
                                         game_over = True
+                                        win_sound.play()
 
         #draw board
         for row in range(board_rows):
@@ -358,6 +388,8 @@ def main():
             draw_game_over_popup(screen, BOARD_WIDTH, BOARD_HEIGHT, game_won)
         #update display
         pygame.display.flip()
+    # Stop background music and quit
+    background_music.stop()
     pygame.quit()
 
 main()
