@@ -314,11 +314,11 @@ def main():
                                     revealed.add((row, col))
                                     game_over = True
                                     bomb_sound.play()
-                                    pygame.time.wait(1000)
+                                    pygame.time.wait(500)
                                     bomb_sound.play()
-                                    pygame.time.wait(10000)
+                                    pygame.time.wait(500)
                                     bomb_sound.play()
-                                    pygame.time.wait(2000) # Wait for bomb sound  # Wait for bomb sound
+                                    pygame.time.wait(500) # Wait for bomb sound
                                     lose_sound.play()
                                 else:
                                     select_sound.play()
