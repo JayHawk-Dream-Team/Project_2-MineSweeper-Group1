@@ -152,6 +152,22 @@ def draw_game_over_popup(screen, width, height, game_won=False):
     
     return play_again_rect, quit_rect
 
+def auto_solve(revealed, flagged, bombs, board_rows, board_columns):
+    """
+    Automatically solve the puzzle using knowledge of bomb positions
+    """
+    # First, flag all bombs
+    for bomb_pos in bombs:
+        if bomb_pos not in flagged:
+            flagged.add(bomb_pos)
+    
+    # Then reveal all safe cells
+    for row in range(board_rows):
+        for col in range(board_columns):
+            if (row, col) not in bombs and (row, col) not in revealed:
+                revealed.add((row, col))
+    return True
+
 def main():
     # Grid size
     board_rows = 10
@@ -203,6 +219,14 @@ def main():
         remaining_bombs = NUM_BOMBS - len(flagged)
         bomb_surface = bomb_font.render(f"Bombs: {remaining_bombs}", True, (0, 0, 0))
         screen.blit(bomb_surface, (BOARD_WIDTH - 100, 60))
+        
+        # Draw auto-solve button
+        solve_button_rect = pygame.Rect(BOARD_WIDTH//2 - 50, 60, 100, 30)
+        pygame.draw.rect(screen, (100, 200, 100), solve_button_rect)
+        pygame.draw.rect(screen, (0, 0, 0), solve_button_rect, 2)
+        solve_text = bomb_font.render("Auto Solve", True, (0, 0, 0))
+        solve_text_rect = solve_text.get_rect(center=solve_button_rect.center)
+        screen.blit(solve_text, solve_text_rect)
 
         # --- INPUT (mouse clicks) ---
         for event in pygame.event.get():
@@ -231,6 +255,15 @@ def main():
                     elif quit_rect.collidepoint(mx, my):
                         running = False
                         continue
+                
+                # Check auto-solve button click
+                solve_button_rect = pygame.Rect(BOARD_WIDTH//2 - 50, 60, 100, 30)
+                if not game_over and solve_button_rect.collidepoint(mx, my):
+                    if not first_click:  # Only allow auto-solve after first click
+                        if auto_solve(revealed, flagged, bombs, board_rows, board_columns):
+                            game_won = True
+                            game_over = True
+                    continue
                 
                 # Game board clicks (only if not game over)
                 if not game_over and my > UI_HEIGHT:
