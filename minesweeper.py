@@ -16,12 +16,12 @@ win_sound = pygame.mixer.Sound(os.path.join(SOUND_DIR, "win.mp3"))
 lose_sound = pygame.mixer.Sound(os.path.join(SOUND_DIR, "lose.mp3"))
 
 # Set volumes
-background_music.set_volume(0.2)  # Lower volume for background music
-select_sound.set_volume(0.7)
-flag_sound.set_volume(0.7)
+background_music.set_volume(0.01)  # Lower volume for background music
+select_sound.set_volume(0.01)
+flag_sound.set_volume(0.01)
 bomb_sound.set_volume(1.0)
-win_sound.set_volume(0.7)
-lose_sound.set_volume(0.7)
+win_sound.set_volume(0.01)
+lose_sound.set_volume(0.01)
 
 NUM_BOMBS: int = 16
 BOARD_WIDTH: int = 500
