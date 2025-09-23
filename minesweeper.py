@@ -116,7 +116,7 @@ def get_bomb_count():
         
         pygame.display.flip()
 
-BOARD_WIDTH: int = 500
+BOARD_WIDTH: int = 530
 BOARD_HEIGHT: int = 620
 UI_HEIGHT: int = 120
 NUM_BOMBS: int = get_bomb_count()
@@ -284,7 +284,7 @@ def main():
     # Grid size
     board_rows = 10
     board_columns = 10
-    cell_size = BOARD_WIDTH // board_columns
+    cell_size = (BOARD_WIDTH - 30) // board_columns # Minus 30 for the label margin
 
     screen = pygame.display.set_mode((BOARD_WIDTH, BOARD_HEIGHT))
     pygame.display.set_caption("Minesweeper")
@@ -382,8 +382,8 @@ def main():
                     continue
                 
                 # Game board clicks (only if not game over)
-                if not game_over and my > UI_HEIGHT:
-                    col = mx // cell_size
+                if not game_over and my > UI_HEIGHT and mx > LABEL_MARGIN:
+                    col = (mx - LABEL_MARGIN) // cell_size
                     row = (my - UI_HEIGHT) // cell_size
                     if 0 <= row < board_rows and 0 <= col < board_columns:
                         # Right click for flagging
@@ -425,23 +425,40 @@ def main():
                                         game_over = True
                                         win_sound.play()
 
-        # Draw column titles (A-J)
-        letter_font = pygame.font.Font(None, 28)  # Slightly larger font
-        # Draw a light gray background for the letters
-        letter_bg = pygame.Rect(0, UI_HEIGHT - 30, BOARD_WIDTH, 30)
-        pygame.draw.rect(screen, (240, 240, 240), letter_bg)
+        # Create a constant for the label margin
+        LABEL_MARGIN = 30
         
+        # Draw column titles (A-J)
+        label_font = pygame.font.Font(None, 28) 
+        
+        # Draw a light gray background for the column letters
+        col_letter_bg = pygame.Rect(LABEL_MARGIN, UI_HEIGHT - LABEL_MARGIN, BOARD_WIDTH - LABEL_MARGIN, LABEL_MARGIN)
+        pygame.draw.rect(screen, (240, 240, 240), col_letter_bg)
+        
+        # Draw column labels (A-J)
         for col in range(board_columns):
             letter = chr(65 + col)  # Convert 0-9 to A-J
-            text_surface = letter_font.render(letter, True, (0, 0, 0))
-            x = col * cell_size + cell_size // 2  # Center of the column
-            text_rect = text_surface.get_rect(center=(x, UI_HEIGHT - 15))  # Positioned in letter background area
+            text_surface = label_font.render(letter, True, (0, 0, 0))
+            x = LABEL_MARGIN + col * cell_size + cell_size // 2  # Center of the column, offset by margin
+            text_rect = text_surface.get_rect(center=(x, UI_HEIGHT - 15))
+            screen.blit(text_surface, text_rect)
+        
+        # Draw row labels background (1-10)
+        row_label_bg = pygame.Rect(0, UI_HEIGHT, LABEL_MARGIN, BOARD_HEIGHT - UI_HEIGHT)
+        pygame.draw.rect(screen, (240, 240, 240), row_label_bg)
+        
+        # Draw row labels (1-10)
+        for row in range(board_rows):
+            number = str(row + 1)  # Convert 0-9 to 1-10
+            text_surface = label_font.render(number, True, (0, 0, 0))
+            y = UI_HEIGHT + row * cell_size + cell_size // 2  # Center of the row
+            text_rect = text_surface.get_rect(center=(LABEL_MARGIN // 2, y))
             screen.blit(text_surface, text_rect)
 
         #draw board
         for row in range(board_rows):
             for col in range(board_columns):
-                x = col * cell_size
+                x = col * cell_size + LABEL_MARGIN  # Offset for row labels
                 y = row * cell_size + UI_HEIGHT  # Offset for UI
                 rect = pygame.Rect(x, y, cell_size, cell_size)
                 if (row, col) in revealed:
