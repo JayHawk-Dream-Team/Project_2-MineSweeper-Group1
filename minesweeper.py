@@ -28,19 +28,30 @@ def get_bomb_count():
     Display a popup to get the number of bombs from the user (10-20).
     Returns the selected number of bombs.
     """
-    dialog_width = 400
-    dialog_height = 200
-    dialog = pygame.Surface((dialog_width, dialog_height))
-    dialog.fill((220, 220, 220))  # Slightly lighter gray
-    
     # Create a centered dialog window
     screen = pygame.display.set_mode((BOARD_WIDTH, BOARD_HEIGHT))
-    dialog_x = (BOARD_WIDTH - dialog_width) // 2
-    dialog_y = (BOARD_HEIGHT - dialog_height) // 2
     
-    font = pygame.font.Font(None, 36)  # Slightly larger font
-    title_text = font.render("Enter number of bombs (10-20)", True, (0, 0, 0))
+    # Semi-transparent overlay (like game over popup)
+    overlay = pygame.Surface((BOARD_WIDTH, BOARD_HEIGHT))
+    overlay.set_alpha(128)
+    overlay.fill((0, 0, 0))
+    
+    # Popup dimensions (matching game over popup)
+    popup_width = 300
+    popup_height = 200
+    popup_x = (BOARD_WIDTH - popup_width) // 2
+    popup_y = (BOARD_HEIGHT - popup_height) // 2
+    
+    # Create popup rectangle
+    popup_rect = pygame.Rect(popup_x, popup_y, popup_width, popup_height)
+    
+    # Initialize fonts (matching game over popup style)
+    title_font = pygame.font.Font(None, 36)
+    button_font = pygame.font.Font(None, 24)
     input_text = ""
+    
+    # Confirm button (styled like game over popup buttons)
+    confirm_rect = pygame.Rect(popup_x + popup_width//2 - 50, popup_y + 140, 100, 40)
     
     while True:
         for event in pygame.event.get():
@@ -58,36 +69,51 @@ def get_bomb_count():
                     input_text = ""
                 elif event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
-                elif event.unicode.isdigit():
+                elif event.unicode.isdigit() and len(input_text) < 2:  # Limit to 2 digits
                     input_text += event.unicode
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left click
+                    if confirm_rect.collidepoint(event.pos):
+                        try:
+                            bombs = int(input_text)
+                            if 10 <= bombs <= 20:
+                                return bombs
+                        except ValueError:
+                            pass
         
-        # Draw dialog
-        dialog.fill((200, 200, 200))
-        pygame.draw.rect(dialog, (100, 100, 100), dialog.get_rect(), 2)
+        # Draw semi-transparent overlay
+        screen.fill((255, 255, 255))
+        screen.blit(overlay, (0, 0))
+        
+        # Draw popup background
+        pygame.draw.rect(screen, (255, 255, 255), popup_rect)
+        pygame.draw.rect(screen, (0, 0, 0), popup_rect, 3)
         
         # Draw title
-        title_rect = title_text.get_rect(centerx=dialog_width//2, y=40)  # More space from top
-        dialog.blit(title_text, title_rect)
+        title_text = title_font.render("Select Number of Bombs", True, (0, 0, 0))
+        title_rect = title_text.get_rect(center=(popup_x + popup_width//2, popup_y + 40))
+        screen.blit(title_text, title_rect)
         
         # Draw input box
-        input_box_rect = pygame.Rect(dialog_width//4, 90, dialog_width//2, 40)
-        pygame.draw.rect(dialog, (255, 255, 255), input_box_rect)  # White input box
-        pygame.draw.rect(dialog, (100, 100, 100), input_box_rect, 2)  # Border
+        input_box_rect = pygame.Rect(popup_x + 75, popup_y + 80, 150, 40)
+        pygame.draw.rect(screen, (240, 240, 240), input_box_rect)
+        pygame.draw.rect(screen, (0, 0, 0), input_box_rect, 2)
         
         # Draw input text
-        input_surface = font.render(input_text, True, (0, 0, 0))
-        input_rect = input_surface.get_rect(center=input_box_rect.center)
-        dialog.blit(input_surface, input_rect)
+        if input_text:
+            text_surface = title_font.render(input_text, True, (0, 0, 0))
+        else:
+            text_surface = button_font.render("10-20", True, (128, 128, 128))
+        text_rect = text_surface.get_rect(center=input_box_rect.center)
+        screen.blit(text_surface, text_rect)
         
-        # Draw instruction text
-        instruction_font = pygame.font.Font(None, 24)
-        instruction_text = instruction_font.render("Press Enter to confirm", True, (100, 100, 100))
-        instruction_rect = instruction_text.get_rect(centerx=dialog_width//2, y=150)
-        dialog.blit(instruction_text, instruction_rect)
+        # Draw confirm button (green like "Play Again")
+        pygame.draw.rect(screen, (0, 200, 0), confirm_rect)
+        pygame.draw.rect(screen, (0, 0, 0), confirm_rect, 2)
+        confirm_text = button_font.render("Confirm", True, (255, 255, 255))
+        confirm_text_rect = confirm_text.get_rect(center=confirm_rect.center)
+        screen.blit(confirm_text, confirm_text_rect)
         
-        # Update screen
-        screen.fill((128, 128, 128))
-        screen.blit(dialog, (dialog_x, dialog_y))
         pygame.display.flip()
 
 BOARD_WIDTH: int = 500
