@@ -91,8 +91,8 @@ def get_bomb_count():
         pygame.display.flip()
 
 BOARD_WIDTH: int = 500
-BOARD_HEIGHT: int = 600
-UI_HEIGHT: int = 100
+BOARD_HEIGHT: int = 620
+UI_HEIGHT: int = 120
 NUM_BOMBS: int = get_bomb_count()
 
 def generate_bombs(rows: int, cols: int, bomb_count: int) -> set[tuple[int, int]]:
@@ -307,10 +307,10 @@ def main():
         bomb_font = pygame.font.Font(None, 24)
         remaining_bombs = NUM_BOMBS - len(flagged)
         bomb_surface = bomb_font.render(f"Bombs: {remaining_bombs}", True, (0, 0, 0))
-        screen.blit(bomb_surface, (BOARD_WIDTH - 100, 60))
+        screen.blit(bomb_surface, (BOARD_WIDTH - 100, 60))  # Moved up
         
         # Draw auto-solve button
-        solve_button_rect = pygame.Rect(BOARD_WIDTH//2 - 50, 60, 100, 30)
+        solve_button_rect = pygame.Rect(BOARD_WIDTH//2 - 50, 50, 100, 30)  # Moved up
         pygame.draw.rect(screen, (100, 200, 100), solve_button_rect)
         pygame.draw.rect(screen, (0, 0, 0), solve_button_rect, 2)
         solve_text = bomb_font.render("Auto Solve", True, (0, 0, 0))
@@ -398,6 +398,19 @@ def main():
                                         game_won = True
                                         game_over = True
                                         win_sound.play()
+
+        # Draw column titles (A-J)
+        letter_font = pygame.font.Font(None, 28)  # Slightly larger font
+        # Draw a light gray background for the letters
+        letter_bg = pygame.Rect(0, UI_HEIGHT - 30, BOARD_WIDTH, 30)
+        pygame.draw.rect(screen, (240, 240, 240), letter_bg)
+        
+        for col in range(board_columns):
+            letter = chr(65 + col)  # Convert 0-9 to A-J
+            text_surface = letter_font.render(letter, True, (0, 0, 0))
+            x = col * cell_size + cell_size // 2  # Center of the column
+            text_rect = text_surface.get_rect(center=(x, UI_HEIGHT - 15))  # Positioned in letter background area
+            screen.blit(text_surface, text_rect)
 
         #draw board
         for row in range(board_rows):
