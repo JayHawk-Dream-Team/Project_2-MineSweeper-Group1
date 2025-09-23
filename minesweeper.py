@@ -23,10 +23,77 @@ bomb_sound.set_volume(1.0)
 win_sound.set_volume(0.05)
 lose_sound.set_volume(0.05)
 
-NUM_BOMBS: int = 16
+def get_bomb_count():
+    """
+    Display a popup to get the number of bombs from the user (10-20).
+    Returns the selected number of bombs.
+    """
+    dialog_width = 400
+    dialog_height = 200
+    dialog = pygame.Surface((dialog_width, dialog_height))
+    dialog.fill((220, 220, 220))  # Slightly lighter gray
+    
+    # Create a centered dialog window
+    screen = pygame.display.set_mode((BOARD_WIDTH, BOARD_HEIGHT))
+    dialog_x = (BOARD_WIDTH - dialog_width) // 2
+    dialog_y = (BOARD_HEIGHT - dialog_height) // 2
+    
+    font = pygame.font.Font(None, 36)  # Slightly larger font
+    title_text = font.render("Enter number of bombs (10-20)", True, (0, 0, 0))
+    input_text = ""
+    
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    try:
+                        bombs = int(input_text)
+                        if 10 <= bombs <= 20:
+                            return bombs
+                    except ValueError:
+                        pass
+                    input_text = ""
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                elif event.unicode.isdigit():
+                    input_text += event.unicode
+        
+        # Draw dialog
+        dialog.fill((200, 200, 200))
+        pygame.draw.rect(dialog, (100, 100, 100), dialog.get_rect(), 2)
+        
+        # Draw title
+        title_rect = title_text.get_rect(centerx=dialog_width//2, y=40)  # More space from top
+        dialog.blit(title_text, title_rect)
+        
+        # Draw input box
+        input_box_rect = pygame.Rect(dialog_width//4, 90, dialog_width//2, 40)
+        pygame.draw.rect(dialog, (255, 255, 255), input_box_rect)  # White input box
+        pygame.draw.rect(dialog, (100, 100, 100), input_box_rect, 2)  # Border
+        
+        # Draw input text
+        input_surface = font.render(input_text, True, (0, 0, 0))
+        input_rect = input_surface.get_rect(center=input_box_rect.center)
+        dialog.blit(input_surface, input_rect)
+        
+        # Draw instruction text
+        instruction_font = pygame.font.Font(None, 24)
+        instruction_text = instruction_font.render("Press Enter to confirm", True, (100, 100, 100))
+        instruction_rect = instruction_text.get_rect(centerx=dialog_width//2, y=150)
+        dialog.blit(instruction_text, instruction_rect)
+        
+        # Update screen
+        screen.fill((128, 128, 128))
+        screen.blit(dialog, (dialog_x, dialog_y))
+        pygame.display.flip()
+
 BOARD_WIDTH: int = 500
 BOARD_HEIGHT: int = 600
-UI_HEIGHT: int = 100 
+UI_HEIGHT: int = 100
+NUM_BOMBS: int = get_bomb_count()
 
 def generate_bombs(rows: int, cols: int, bomb_count: int) -> set[tuple[int, int]]:
     """
