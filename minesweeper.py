@@ -2,6 +2,7 @@ import pygame
 import random
 import time
 import os
+from ai import take_turn  
 
 pygame.init()
 pygame.mixer.init()
@@ -307,11 +308,18 @@ def main():
     revealed = set()  # track revealed cells as (row, col) pairs
     flagged = set()   # track flagged cells as (row, col) pairs
     first_click = True
+    ai_mode = 'off'  # off|easy|medium|hard 
     running = True
     game_over = False
     game_won = False
     start_time = time.time()
     game_started = False
+    ai_action_queue = [] #list of pending steps for AI to perform
+    ai_animating = False    
+    ai_last_step_time = 0   
+    AI_STEP_MS = 500  #delay between AI steps 
+    ai_highlight_cell = None  
+    ai_highlight_type = None    
     
     while running:
         screen.fill((255, 255, 255))  # white background
@@ -335,13 +343,68 @@ def main():
         bomb_surface = bomb_font.render(f"Bombs: {remaining_bombs}", True, (0, 0, 0))
         screen.blit(bomb_surface, (BOARD_WIDTH - 100, 60))  # Moved up
         
-        # Draw auto-solve button
-        solve_button_rect = pygame.Rect(BOARD_WIDTH//2 - 50, 50, 100, 30)  # Moved up
+        button_width = 100
+        button_height = 30
+        spacing = 20
+        total_width = button_width * 2 + spacing
+        start_x = (BOARD_WIDTH - total_width) // 2
+        y = 50
+
+        # Auto Solve button
+        solve_button_rect = pygame.Rect(start_x, y, button_width, button_height)
         pygame.draw.rect(screen, (100, 200, 100), solve_button_rect)
         pygame.draw.rect(screen, (0, 0, 0), solve_button_rect, 2)
         solve_text = bomb_font.render("Auto Solve", True, (0, 0, 0))
         solve_text_rect = solve_text.get_rect(center=solve_button_rect.center)
         screen.blit(solve_text, solve_text_rect)
+
+        # AI Mode button
+        ai_button_rect = pygame.Rect(start_x + button_width + spacing, y, button_width, button_height)
+        pygame.draw.rect(screen, (180, 180, 220), ai_button_rect)
+        pygame.draw.rect(screen, (0, 0, 0), ai_button_rect, 2)
+        ai_text = bomb_font.render(f"AI: {ai_mode.capitalize()}", True, (0, 0, 0))
+        ai_text_rect = ai_text.get_rect(center=ai_button_rect.center)
+        screen.blit(ai_text, ai_text_rect)
+        if ai_animating and not game_over:
+            banner_font = pygame.font.Font(None, 24)
+            banner = banner_font.render("AI Turn...", True, (50, 50, 50))
+            banner_rect = banner.get_rect(center=(BOARD_WIDTH//2, 90))
+            screen.blit(banner, banner_rect)
+
+        if ai_animating and not game_over:
+            now = pygame.time.get_ticks()
+            if ai_action_queue and now - ai_last_step_time >= AI_STEP_MS:
+                act, (rr, cc) = ai_action_queue.pop(0)
+                ai_last_step_time = now
+                ai_highlight_cell = (rr, cc)
+                ai_highlight_type = act
+                if act == 'flag':
+                    if (rr, cc) not in revealed and (rr, cc) not in flagged:
+                        flagged.add((rr, cc))
+                        flag_sound.play()
+                elif act == 'reveal':
+                    if (rr, cc) not in flagged:
+                        if grid[rr][cc] == -1:
+                            # AI hit a bomb: reveal and trigger loss
+                            revealed.add((rr, cc))
+                            game_over = True
+                            # brief visual cue followed by sounds
+                            bomb_sound.play(); pygame.time.wait(300)
+                            lose_sound.play()
+                        else:
+                            new2 = flood_fill(grid, rr, cc)
+                            if new2:
+                                select_sound.play()
+                            revealed.update(new2)
+                # If queue emptied or game ended, finalize and check win
+                if (not ai_action_queue) or game_over:
+                    ai_animating = False
+                    if not game_over:
+                        total_safe_cells = board_rows * board_columns - NUM_BOMBS
+                        if len(revealed) == total_safe_cells:
+                            game_won = True
+                            game_over = True
+                            win_sound.play()
 
         # --- INPUT (mouse clicks) ---
         for event in pygame.event.get():
@@ -366,21 +429,87 @@ def main():
                         game_over = False
                         game_won = False
                         game_started = False
+                        ai_action_queue = [] #reset ai highlight
+                        ai_animating = False
+                        ai_last_step_time = 0
+                        ai_highlight_cell = None
+                        ai_highlight_type = None
+
                         continue
                     elif quit_rect.collidepoint(mx, my):
                         running = False
                         continue
                 
-                # Check auto-solve button click
-                solve_button_rect = pygame.Rect(BOARD_WIDTH//2 - 50, 60, 100, 30)
+                # Check auto-solve button click (centered layout)  
+                button_width = 100
+                button_height = 30
+                spacing = 20
+                total_width = button_width * 2 + spacing
+                start_x = (BOARD_WIDTH - total_width) // 2
+                y = 50
+                solve_button_rect = pygame.Rect(start_x, y, button_width, button_height)
+                ai_button_rect = pygame.Rect(start_x + button_width + spacing, y, button_width, button_height)
+
                 if not game_over and solve_button_rect.collidepoint(mx, my):
-                    if not first_click:  # Only allow auto-solve after first click
-                        if auto_solve(revealed, flagged, bombs, board_rows, board_columns):
-                            game_won = True
-                            game_over = True
-                            win_sound.play()
+                    if not first_click:
+                        if ai_mode.lower() == 'off':
+                            if auto_solve(revealed, flagged, bombs, board_rows, board_columns):
+                                game_won = True
+                                game_over = True
+                                win_sound.play()
+                        else:
+                            actions, _ = take_turn(ai_mode, grid, bombs, revealed, flagged, flood_fill)
+                            for act, (r, c) in actions:
+                                if act == 'flag':
+                                    if (r, c) not in revealed and (r, c) not in flagged:
+                                        flagged.add((r, c))
+                                        flag_sound.play()
+                                elif act == 'reveal':
+                                    if (r, c) in flagged:
+                                        continue
+                                    if grid[r][c] == -1:
+                                        revealed.add((r, c))
+                                        game_over = True
+                                        bomb_sound.play()
+                                        pygame.time.wait(500)
+                                        bomb_sound.play()
+                                        pygame.time.wait(500)
+                                        bomb_sound.play()
+                                        pygame.time.wait(500)
+                                        lose_sound.play()
+                                        break
+                                    else:
+                                        new_reveals = flood_fill(grid, r, c)
+                                        if new_reveals:
+                                            select_sound.play()
+                                        revealed.update(new_reveals)
+                            if not game_over:
+                                total_safe_cells = board_rows * board_columns - NUM_BOMBS
+                                if len(revealed) == total_safe_cells:
+                                    game_won = True
+                                    game_over = True
+                                    win_sound.play()
                     continue
-                
+
+        
+                button_width = 100
+                button_height = 30
+                spacing = 20
+                total_width = button_width * 2 + spacing
+                start_x = (BOARD_WIDTH - total_width) // 2 #center the buttons
+                y = 50
+                solve_button_rect = pygame.Rect(start_x, y, button_width, button_height)
+                ai_button_rect = pygame.Rect(start_x + button_width + spacing, y, button_width, button_height)
+
+                if ai_button_rect.collidepoint(mx, my):
+                    modes = ['off', 'easy', 'medium', 'hard']
+                    try:
+                        i = modes.index(ai_mode.lower())
+                    except ValueError:
+                        i = 0
+                    ai_mode = modes[(i + 1) % len(modes)]
+                    continue 
+
                 # Game board clicks (only if not game over)
                 if not game_over and my > UI_HEIGHT and mx > LABEL_MARGIN:
                     col = (mx - LABEL_MARGIN) // cell_size
@@ -424,6 +553,21 @@ def main():
                                         game_won = True
                                         game_over = True
                                         win_sound.play()
+                                    if not game_over and ai_mode.lower() != 'off' and not first_click:
+                                        actions, _ = take_turn(ai_mode, grid, bombs, revealed, flagged, flood_fill)  
+                                        ai_action_queue = list(actions)  
+                                        ai_animating = True            
+                                        ai_last_step_time = pygame.time.get_ticks() - AI_STEP_MS  # trigger first step ASAP 
+                                        ai_highlight_cell = None     
+                                        ai_highlight_type = None        
+                                        # Post-AI win check 
+                                        if not game_over:  
+                                            total_safe_cells = board_rows * board_columns - NUM_BOMBS  
+                                            if len(revealed) == total_safe_cells:  
+                                                game_won = True  
+                                                game_over = True 
+                                                win_sound.play()
+
 
         # Create a constant for the label margin
         LABEL_MARGIN = 30
@@ -507,6 +651,15 @@ def main():
                             (flag_x, flag_y + 2 * flag_size // 3)
                         ]
                         pygame.draw.polygon(screen, (255, 0, 0), flag_points)
+
+
+                if ai_highlight_cell == (row, col):
+                    pygame.draw.rect(screen, (255, 255, 0), rect, 3)  # yellow border
+                    if ai_highlight_type == 'reveal' and grid[row][col] == -1:
+                        # If AI revealed a bomb, add a red inner border cue
+                        inner = rect.inflate(-6, -6)
+                        pygame.draw.rect(screen, (255, 0, 0), inner, 3)
+
                 # cell border
                 pygame.draw.rect(screen, (0, 0, 0), rect, 1)
     
