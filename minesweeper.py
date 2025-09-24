@@ -452,37 +452,17 @@ def main():
 
                 if not game_over and solve_button_rect.collidepoint(mx, my):
                     if not first_click:
-                        if ai_mode.lower() == 'off':
-                            if auto_solve(revealed, flagged, bombs, board_rows, board_columns):
-                                game_won = True
-                                game_over = True
-                                win_sound.play()
-                        else:
-                            actions, _ = take_turn(ai_mode, grid, bombs, revealed, flagged, flood_fill)
-                            for act, (r, c) in actions:
-                                if act == 'flag':
-                                    if (r, c) not in revealed and (r, c) not in flagged:
-                                        flagged.add((r, c))
-                                        flag_sound.play()
-                                elif act == 'reveal':
-                                    if (r, c) in flagged:
-                                        continue
-                                    if grid[r][c] == -1:
-                                        revealed.add((r, c))
-                                        game_over = True
-                                        bomb_sound.play()
-                                        pygame.time.wait(500)
-                                        bomb_sound.play()
-                                        pygame.time.wait(500)
-                                        bomb_sound.play()
-                                        pygame.time.wait(500)
-                                        lose_sound.play()
-                                        break
-                                    else:
-                                        new_reveals = flood_fill(grid, r, c)
-                                        if new_reveals:
-                                            select_sound.play()
-                                        revealed.update(new_reveals)
+                        ai_animating = False
+                        ai_action_queue = []
+                        ai_highlight_cell = None
+                        ai_highlight_type = None
+                        ai_last_step_time = 0
+
+                        if auto_solve(revealed, flagged, bombs, board_rows, board_columns):
+                            game_won = True
+                            game_over = True
+                            win_sound.play()
+
                             if not game_over:
                                 total_safe_cells = board_rows * board_columns - NUM_BOMBS
                                 if len(revealed) == total_safe_cells:
@@ -491,7 +471,6 @@ def main():
                                     win_sound.play()
                     continue
 
-        
                 button_width = 100
                 button_height = 30
                 spacing = 20
