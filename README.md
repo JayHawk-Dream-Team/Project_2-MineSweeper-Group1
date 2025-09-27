@@ -26,9 +26,6 @@ source .venv/bin/activate
 pip install pygame
 python minesweeper.py
 ```
-
-
-
 ---
 ## Features
 - Configurable bomb count
@@ -64,13 +61,53 @@ Action tuple format:
 | Quit (after end) | Click red "Quit" |
 
 
+## Time Taken
+
+| Name                 | Expected Time        | Actual Time            |
+|----------------------|----------------------|------------------------|
+| Carlos Mbendera      | 2–3 hours            | 1 hour                 |
+| Yoseph Ephrem        | 1 hour 30 min        | 2 hours 30 min         |
+| Cole DuBois          | 1 hour               | 2 hours 30 min         |
+| Blake Ebner          | 45 min               | 45 min                 |
+| Mahdi Essawi         | PENDING              | PENDING                |
+| Jonathan Johnston    | PENDING              | PENDING                |
+
+
+### Time Estimation Method
+
+These times exclude meetings and research.
+
+Similar to Project 1, to calculate the expected amount of time for work, we allowed each individual to approximate their own respective hours as we believed that due our own personal difference in experience and technical history that we’d be our best estimates since the workload was divided depending on what everyone’s strengths were. 
+
+### Time Tracking Tools
+
+Similar to Project 1, we used GitHub extensively and [GitHub Projects]([url](https://github.com/orgs/JayHawk-Dream-Team/projects/3)) to keep track of our roles, tasks and timelines of each other's work.
+
+By observing [our GitHub Project](https://github.com/orgs/JayHawk-Dream-Team/projects/3), you shall notice that we had a planning board to separate tasks into 3 sections, Todo, In Progress, Done. This made it possible for everyone to be synchronized on the status of components they may be dependent on.
+
+Additionally, we also had used the Roadmap feature to get a rough timeline of when everything was needed on an iteration by iteration basis. In this case, each iteration was a week.
+
+A new addition for this project is that we also used a simple list view. This was because the tasks we had were a lot smaller than project 1.
+
+## Screenshots As of September 27, 2025 of GitHub Project
+
+<img width="1840" height="1112" alt="Screenshot 2025-09-27 at 4 15 33 PM" src="https://github.com/user-attachments/assets/3f91b6d1-ab05-4e62-a412-561c572b962f" />
+<img width="1840" height="1112" alt="Screenshot 2025-09-27 at 4 15 31 PM" src="https://github.com/user-attachments/assets/a9c5f0ec-7fa9-4435-a476-761f3fa3d090" />
+<img width="1840" height="1112" alt="Screenshot 2025-09-27 at 4 15 41 PM" src="https://github.com/user-attachments/assets/ec3c922c-c926-4130-8f91-4ce81d383bc7" />
+
+## Project Arch
+
+<img width="952" height="760" alt="Screenshot 2025-09-27 at 4 05 51 PM" src="https://github.com/user-attachments/assets/e6a0c375-71a4-42cb-9ae2-5ecffcedd204" />
+
+
 ## References
-Course project 2 for EECS 581. Original requirements: https://people.eecs.ku.edu/~saiedian/581/Proj/proj2
+- Course project 2 for EECS 581. Original requirements: https://people.eecs.ku.edu/~saiedian/581/Proj/proj2
+- JayHawk Dream Team Project 1 Submission: https://github.com/JayHawk-Dream-Team/EECS581MineSweeper
 
 ## Beautiful Pictures (Gameplay Screenshots) 
 
 
-## Verion as of 27 September, 2025
+## Version as of 27 September, 2025
 <img width="642" height="760" alt="Screenshot 2025-09-27 at 3 49 33 PM" src="https://github.com/user-attachments/assets/0e0707ed-5def-4c7e-87eb-7baf80694c2c" />
 <img width="642" height="760" alt="Screenshot 2025-09-27 at 3 49 42 PM" src="https://github.com/user-attachments/assets/0bb2c6d9-22c0-4068-9e16-a064bcad8e2b" />
 <img width="642" height="760" alt="Screenshot 2025-09-27 at 3 49 56 PM" src="https://github.com/user-attachments/assets/7c9dd5a9-2188-4b95-9c2b-afa7bdc01947" />
