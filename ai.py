@@ -32,7 +32,30 @@ def take_turn_medium(grid, bombs, revealed: Set[Coord], flagged: Set[Coord], flo
     return [],
 
 def take_turn_hard(grid, bombs, revealed: Set[Coord], flagged: Set[Coord], flood_fill_fn):
-    return [],
+    rows, cols = len(grid), len(grid[0])
+
+    candidates = [
+        (r, c)
+        for r in range(rows)
+        for c in range(cols)
+        if (r, c) not in revealed
+        and (r, c) not in flagged
+        and (r, c) not in bombs
+    ]
+
+    if not candidates:
+        return [], "No safe moves available."
+
+    # pick a random safe hidden cell
+    pick = random.choice(candidates)
+    r, c = pick
+
+    if grid[r][c] == 0:
+        reveal = flood_fill_fn(grid, r, c)
+        return [("reveal", rc) for rc in reveal], f"Hard: Smart reveal at {pick} (0 region)."
+    
+    return [("reveal", pick)], f"Hard: Smart reveal at {pick}."
+
 
 
 def take_turn(mode: str, grid, bombs, revealed: Set[Coord], flagged: Set[Coord], flood_fill_fn):

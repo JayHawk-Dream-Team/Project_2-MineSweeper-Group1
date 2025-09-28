@@ -511,41 +511,44 @@ def main():
                                     first_click = False
                                     game_started = True
                                     start_time = time.time()
-                                if grid[row][col] == -1:
-                                    revealed.add((row, col))
-                                    game_over = True
-                                    bomb_sound.play()
-                                    pygame.time.wait(500)
-                                    bomb_sound.play()
-                                    pygame.time.wait(500)
-                                    bomb_sound.play()
-                                    pygame.time.wait(500) # Wait for bomb sound
-                                    lose_sound.play()
-                                else:
-                                    select_sound.play()
-                                    new_reveals = flood_fill(grid, row, col)
-                                    revealed.update(new_reveals)
-                                    
-                                    # Check for win condition
-                                    total_safe_cells = board_rows * board_columns - NUM_BOMBS
-                                    if len(revealed) == total_safe_cells:
-                                        game_won = True
+                                if (row, col) not in revealed: # only start if it's not already revealed
+                                    if grid[row][col] == -1:
+                                        revealed.add((row, col))
                                         game_over = True
-                                        win_sound.play()
-                                    if not game_over and ai_mode.lower() != 'off' and not first_click:
-                                        actions, _ = take_turn(ai_mode, grid, bombs, revealed, flagged, flood_fill)  
-                                        ai_action_queue = list(actions)  
-                                        ai_animating = True            
-                                        ai_last_step_time = pygame.time.get_ticks() - AI_STEP_MS  # trigger first step ASAP 
-                                        ai_highlight_cell = None     
-                                        ai_highlight_type = None        
-                                        # Post-AI win check 
-                                        if not game_over:  
-                                            total_safe_cells = board_rows * board_columns - NUM_BOMBS  
-                                            if len(revealed) == total_safe_cells:  
-                                                game_won = True  
-                                                game_over = True 
-                                                win_sound.play()
+                                        bomb_sound.play()
+                                        pygame.time.wait(500)
+                                        bomb_sound.play()
+                                        pygame.time.wait(500)
+                                        bomb_sound.play()
+                                        pygame.time.wait(500) # Wait for bomb sound
+                                        lose_sound.play()
+                                    else:
+                                        # New Check added
+                                        #if (row, col) not in revealed:   # only process if not already revealed
+                                        select_sound.play()
+                                        new_reveals = flood_fill(grid, row, col)
+                                        revealed.update(new_reveals)
+                                        
+                                        # Check for win condition
+                                        total_safe_cells = board_rows * board_columns - NUM_BOMBS
+                                        if len(revealed) == total_safe_cells:
+                                            game_won = True
+                                            game_over = True
+                                            win_sound.play()
+                                        if not game_over and ai_mode.lower() != 'off' and not first_click and new_reveals:
+                                            actions, _ = take_turn(ai_mode, grid, bombs, revealed, flagged, flood_fill)  
+                                            ai_action_queue = list(actions)  
+                                            ai_animating = True            
+                                            ai_last_step_time = pygame.time.get_ticks() - AI_STEP_MS  # trigger first step ASAP 
+                                            ai_highlight_cell = None     
+                                            ai_highlight_type = None        
+                                            # Post-AI win check 
+                                            if not game_over:  
+                                                total_safe_cells = board_rows * board_columns - NUM_BOMBS  
+                                                if len(revealed) == total_safe_cells:  
+                                                    game_won = True  
+                                                    game_over = True 
+                                                    win_sound.play()
 
 
         # Create a constant for the label margin
