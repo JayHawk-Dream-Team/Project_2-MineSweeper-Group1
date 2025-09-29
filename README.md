@@ -34,9 +34,9 @@ python minesweeper.py
 - Automatic expansion of zero regions 
 - Auto solver (flags all bombs + reveals all safe cells)
 - AI mode cycling button (Off → Easy → Medium → Hard)
-- Easy AI: chooses a random hidden, unflagged cell and reveals (with flood fill when 0)
-- **Medium AI: TODO**
-- **Hard AI: TODO**
+- Easy AI
+- Medium AI
+- Hard AI
 - Sound effects for: select, flag, bomb, win, lose, background music
 
 ---
@@ -65,12 +65,12 @@ Action tuple format:
 
 | Name                 | Expected Time        | Actual Time            |
 |----------------------|----------------------|------------------------|
-| Carlos Mbendera      | 2–3 hours            | 1 hour                 |
+| Carlos Mbendera      | 2–3 hours            | 1 hour 30 min                |
 | Yoseph Ephrem        | 1 hour 30 min        | 2 hours 30 min         |
 | Cole DuBois          | 1 hour               | 2 hours 30 min         |
 | Blake Ebner          | 45 min               | 45 min                 |
-| Mahdi Essawi         | PENDING              | PENDING                |
-| Jonathan Johnston    | PENDING              | PENDING                |
+| Mahdi Essawi         |  1 hour 30 min              |  1 hour               |
+| Jonathan Johnston    |  1 hour 30 min              |  1 hour 30 min                |
 
 
 ### Time Estimation Method
@@ -88,6 +88,32 @@ By observing [our GitHub Project](https://github.com/orgs/JayHawk-Dream-Team/pro
 Additionally, we also had used the Roadmap feature to get a rough timeline of when everything was needed on an iteration by iteration basis. In this case, each iteration was a week.
 
 A new addition for this project is that we also used a simple list view. This was because the tasks we had were a lot smaller than project 1.
+
+### Meetings and Meeting Notes
+
+For this project, we only had 1 meeting on September 21, 2025 after meeting with our TA and understanding the scope of the project. Further communication occured via a group chat in Group Me. By September 29, 2025, prior to our TA meeting, the work was already complete so we didn't have time for a follow up meeting.
+
+#### Meeting Notes – September 22, 2025
+
+During our weekly scrum meeting, we demoed project 1 and began discussing Project 2 upgrades. After our session with the TA, we continued the conversation by ourselves as a team and agreed to the following.
+
+**Key Decisions**
+
+- Custom Feature: We agreed to add a suite of audio features and sound effects. Blake will lead this work.
+- Visual Features: After reviewing the inherited project’s source code, we noticed several missing visual elements. Mahdi volunteered to handle this.
+- AI Solver & Project Management: We outlined responsibilities for the AI Solver and general project organization.
+
+  
+**Task Assignments**
+
+
+- Carlos – Documentation, project management, and GitHub repository setup (tasks include assigning work, taking meeting notes, and setting up a fork of the repo).
+- Blake – Sound effects and audio features.
+- Yoseph – Easy Mode AI.
+- Jonathan – Medium Mode AI
+- Cole – Auto Solver
+- Mahdi – Hard Mode AI + Visual features.
+
 
 ## Screenshots As of September 27, 2025 of GitHub Project
 
