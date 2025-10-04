@@ -287,6 +287,8 @@ def main():
     board_columns = 10
     cell_size = (BOARD_WIDTH - 30) // board_columns # Minus 30 for the label margin
 
+    dark_mode = False # for dark mode button
+
     screen = pygame.display.set_mode((BOARD_WIDTH, BOARD_HEIGHT))
     pygame.display.set_caption("Minesweeper")
     
@@ -319,56 +321,89 @@ def main():
     ai_last_step_time = 0   
     AI_STEP_MS = 500  #delay between AI steps 
     ai_highlight_cell = None  
-    ai_highlight_type = None    
-    
+    ai_highlight_type = None
+
+    # light and dark mode
+    light_theme = {
+    "bg": (255, 255, 255),
+    "text": (0, 0, 0),
+    "cell_hidden": (200, 200, 200),
+    "cell_revealed": (230, 230, 230),
+    "cell_label": (240, 240, 240),
+    "bomb": (255, 100, 100),
+    }
+
+    dark_theme = {
+        "bg": (30, 30, 30),
+        "text": (220, 220, 220),
+        "cell_hidden": (70, 70, 70),
+        "cell_revealed": (100, 100, 100),
+        "cell_label": (60, 60, 60),
+        "bomb": (200, 50, 50),
+    }
+
+        
     while running:
-        screen.fill((255, 255, 255))  # white background
+        theme = dark_theme if dark_mode else light_theme # toggle between them
+        
+        screen.fill(theme["bg"])  # replace it with the theme specified bg
         
         # Draw title
         title_font = pygame.font.Font(None, 48)
-        title_surface = title_font.render("MINESWEEPER", True, (0, 0, 0))
+        title_surface = title_font.render("MINESWEEPER", True, theme["text"])
         title_rect = title_surface.get_rect(center=(BOARD_WIDTH//2, 30))
         screen.blit(title_surface, title_rect)
         
-        # Draw timer
+        # Draw 
         if game_started and not game_over:
             elapsed_time = int(time.time() - start_time)
             timer_font = pygame.font.Font(None, 24)
-            timer_surface = timer_font.render(f"Time: {elapsed_time}s", True, (0, 0, 0))
+            timer_surface = timer_font.render(f"Time: {elapsed_time}s", True, theme["text"])
             screen.blit(timer_surface, (10, 60))
         
         # Draw bomb count and flag count
         bomb_font = pygame.font.Font(None, 24)
         remaining_bombs = NUM_BOMBS - len(flagged)
-        bomb_surface = bomb_font.render(f"Bombs: {remaining_bombs}", True, (0, 0, 0))
-        screen.blit(bomb_surface, (BOARD_WIDTH - 100, 60))  # Moved up
+        bomb_surface = bomb_font.render(f"Bombs: {remaining_bombs}", True, theme["text"])
+        screen.blit(bomb_surface, (BOARD_WIDTH - 90, 60))  # Moved to avoid overlap
         
         button_width = 100
         button_height = 30
-        spacing = 20
-        total_width = button_width * 2 + spacing
+        spacing = 15
+        total_width = button_width * 3 + spacing * 2
         start_x = (BOARD_WIDTH - total_width) // 2
         y = 50
 
-        # Auto Solve button
+        # Define button rectangles for this frame
         solve_button_rect = pygame.Rect(start_x, y, button_width, button_height)
+        ai_button_rect = pygame.Rect(start_x + button_width + spacing, y, button_width, button_height)
+        dark_button_rect = pygame.Rect(start_x + 2 * (button_width + spacing), y, button_width, button_height)
+
+        # Auto Solve button
         pygame.draw.rect(screen, (100, 200, 100), solve_button_rect)
-        pygame.draw.rect(screen, (0, 0, 0), solve_button_rect, 2)
-        solve_text = bomb_font.render("Auto Solve", True, (0, 0, 0))
+        pygame.draw.rect(screen, theme["text"], solve_button_rect, 2)
+        solve_text = bomb_font.render("Auto Solve", True, theme["text"])
         solve_text_rect = solve_text.get_rect(center=solve_button_rect.center)
         screen.blit(solve_text, solve_text_rect)
 
         # AI Mode button
-        ai_button_rect = pygame.Rect(start_x + button_width + spacing, y, button_width, button_height)
         pygame.draw.rect(screen, (180, 180, 220), ai_button_rect)
-        pygame.draw.rect(screen, (0, 0, 0), ai_button_rect, 2)
+        pygame.draw.rect(screen, theme["text"], ai_button_rect, 2)
         ai_text = bomb_font.render(f"AI: {ai_mode.capitalize()}", True, (0, 0, 0))
         ai_text_rect = ai_text.get_rect(center=ai_button_rect.center)
         screen.blit(ai_text, ai_text_rect)
+
+        # dark mode button
+        pygame.draw.rect(screen, (80, 80, 80) if dark_mode else (220, 220, 220), dark_button_rect)
+        pygame.draw.rect(screen, theme["text"], dark_button_rect, 2)
+        dark_text = bomb_font.render("Dark Mode" if not dark_mode else "Light Mode", True, (255, 255, 255) if dark_mode else (0, 0, 0))
+        dark_text_rect = dark_text.get_rect(center=dark_button_rect.center)
+        screen.blit(dark_text, dark_text_rect)
+
         if ai_animating and not game_over:
             banner_font = pygame.font.Font(None, 24)
-            banner = banner_font.render("AI Turn...", True, (50, 50, 50))
-            banner_rect = banner.get_rect(center=(BOARD_WIDTH//2, 90))
+            banner = banner_font.render("AI Turn...", True, theme["text"])
+            banner_rect = banner.get_rect(center=(40, 20))
             screen.blit(banner, banner_rect)
 
         if ai_animating and not game_over:
@@ -412,7 +447,7 @@ def main():
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = pygame.mouse.get_pos()
-                
+
                 # Check if clicking on game over popup buttons
                 if game_over:
                     play_again_rect, quit_rect = draw_game_over_popup(screen, BOARD_WIDTH, BOARD_HEIGHT, game_won)
@@ -440,16 +475,22 @@ def main():
                         running = False
                         continue
                 
-                # Check auto-solve button click (centered layout)  
-                button_width = 100
-                button_height = 30
-                spacing = 20
-                total_width = button_width * 2 + spacing
-                start_x = (BOARD_WIDTH - total_width) // 2
-                y = 50
-                solve_button_rect = pygame.Rect(start_x, y, button_width, button_height)
-                ai_button_rect = pygame.Rect(start_x + button_width + spacing, y, button_width, button_height)
+                # Check dark mode button
+                if dark_button_rect.collidepoint(mx, my):
+                    dark_mode = not dark_mode
+                    continue
 
+                # Check AI mode button
+                if ai_button_rect.collidepoint(mx, my):
+                    modes = ['off', 'easy', 'medium', 'hard']
+                    try:
+                        i = modes.index(ai_mode.lower())
+                    except ValueError:
+                        i = 0
+                    ai_mode = modes[(i + 1) % len(modes)]
+                    continue 
+                
+                # Check auto-solve button click
                 if not game_over and solve_button_rect.collidepoint(mx, my):
                     if not first_click:
                         ai_animating = False
@@ -471,24 +512,6 @@ def main():
                                     win_sound.play()
                     continue
 
-                button_width = 100
-                button_height = 30
-                spacing = 20
-                total_width = button_width * 2 + spacing
-                start_x = (BOARD_WIDTH - total_width) // 2 #center the buttons
-                y = 50
-                solve_button_rect = pygame.Rect(start_x, y, button_width, button_height)
-                ai_button_rect = pygame.Rect(start_x + button_width + spacing, y, button_width, button_height)
-
-                if ai_button_rect.collidepoint(mx, my):
-                    modes = ['off', 'easy', 'medium', 'hard']
-                    try:
-                        i = modes.index(ai_mode.lower())
-                    except ValueError:
-                        i = 0
-                    ai_mode = modes[(i + 1) % len(modes)]
-                    continue 
-
                 # Game board clicks (only if not game over)
                 if not game_over and my > UI_HEIGHT and mx > LABEL_MARGIN:
                     col = (mx - LABEL_MARGIN) // cell_size
@@ -504,7 +527,7 @@ def main():
                                     flagged.add((row, col))
                                     flag_sound.play()
                         # Left click for revealing
-                        elif event.button == 1:  # Left click
+                        elif event.button == 1:  # Left click 
                             if (row, col) not in flagged:  # Can't reveal flagged cells
                                 if first_click:
                                     grid, bombs = ensure_safe_start(grid, row, col, bombs)
@@ -559,24 +582,24 @@ def main():
         
         # Draw a light gray background for the column letters
         col_letter_bg = pygame.Rect(LABEL_MARGIN, UI_HEIGHT - LABEL_MARGIN, BOARD_WIDTH - LABEL_MARGIN, LABEL_MARGIN)
-        pygame.draw.rect(screen, (240, 240, 240), col_letter_bg)
+        pygame.draw.rect(screen, theme["cell_label"], col_letter_bg)
         
         # Draw column labels (A-J)
         for col in range(board_columns):
             letter = chr(65 + col)  # Convert 0-9 to A-J
-            text_surface = label_font.render(letter, True, (0, 0, 0))
+            text_surface = label_font.render(letter, True, theme["text"])
             x = LABEL_MARGIN + col * cell_size + cell_size // 2  # Center of the column, offset by margin
             text_rect = text_surface.get_rect(center=(x, UI_HEIGHT - 15))
             screen.blit(text_surface, text_rect)
         
         # Draw row labels background (1-10)
         row_label_bg = pygame.Rect(0, UI_HEIGHT, LABEL_MARGIN, BOARD_HEIGHT - UI_HEIGHT)
-        pygame.draw.rect(screen, (240, 240, 240), row_label_bg)
+        pygame.draw.rect(screen, theme["cell_label"], row_label_bg)
         
         # Draw row labels (1-10)
         for row in range(board_rows):
             number = str(row + 1)  # Convert 0-9 to 1-10
-            text_surface = label_font.render(number, True, (0, 0, 0))
+            text_surface = label_font.render(number, True, theme["text"])
             y = UI_HEIGHT + row * cell_size + cell_size // 2  # Center of the row
             text_rect = text_surface.get_rect(center=(LABEL_MARGIN // 2, y))
             screen.blit(text_surface, text_rect)
@@ -589,12 +612,12 @@ def main():
                 rect = pygame.Rect(x, y, cell_size, cell_size)
                 if (row, col) in revealed:
                     if grid[row][col] == -1:
-                        pygame.draw.rect(screen, (255, 100, 100), rect)
+                        pygame.draw.rect(screen, theme["bomb"], rect)
                         center = rect.center
                         pygame.draw.circle(screen, (0, 0, 0), center, cell_size // 4)
                     else:
                         # safe cell revealed: light gray
-                        pygame.draw.rect(screen, (230, 230, 230), rect)
+                        pygame.draw.rect(screen, theme["cell_revealed"], rect)
                         number = grid[row][col]
                         if number > 0:
                             number_colors = {
@@ -613,7 +636,7 @@ def main():
                             screen.blit(text_surface, text_rect)
                 else:
                     # Unrevealed cells - draw as covered
-                    pygame.draw.rect(screen, (200, 200, 200), rect)
+                    pygame.draw.rect(screen, theme["cell_hidden"], rect)
                     # Draw flag if cell is flagged
                     if (row, col) in flagged:
                         # Draw a simple flag using pygame shapes
@@ -643,7 +666,7 @@ def main():
                         pygame.draw.rect(screen, (255, 0, 0), inner, 3)
 
                 # cell border
-                pygame.draw.rect(screen, (0, 0, 0), rect, 1)
+                pygame.draw.rect(screen, theme["text"], rect, 1)
     
         # Draw game over popup if game is over
         if game_over:
