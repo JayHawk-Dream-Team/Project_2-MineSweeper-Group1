@@ -370,14 +370,15 @@ def main():
         button_width = 100
         button_height = 30
         spacing = 15
-        total_width = button_width * 3 + spacing * 2
+        total_width = button_width * 2 + spacing  # Reduced to 2 buttons
         start_x = (BOARD_WIDTH - total_width) // 2
         y = 50
 
         # Define button rectangles for this frame
         solve_button_rect = pygame.Rect(start_x, y, button_width, button_height)
         ai_button_rect = pygame.Rect(start_x + button_width + spacing, y, button_width, button_height)
-        dark_button_rect = pygame.Rect(start_x + 2 * (button_width + spacing), y, button_width, button_height)
+        # Dark mode button in top right corner
+        dark_button_rect = pygame.Rect(BOARD_WIDTH - button_width - 10, 10, button_width, button_height)
 
         # Auto Solve button
         pygame.draw.rect(screen, (100, 200, 100), solve_button_rect)
