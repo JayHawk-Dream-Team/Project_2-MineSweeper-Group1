@@ -265,16 +265,24 @@ def draw_game_over_popup(screen, width, height, game_won=False):
     
     return play_again_rect, quit_rect
 
-def auto_solve(revealed, flagged, bombs, board_rows, board_columns):
+def auto_solve(revealed, flagged, bombs, board_rows, board_columns, grid, difficulty='easy'):
     """
-    Automatically solve the puzzle using knowledge of bomb positions
+    Automatically solve the puzzle using the selected solve mode difficulty with animation
     """
-    # First, flag all bombs
-    for bomb_pos in bombs:
-        if bomb_pos not in flagged:
-            flagged.add(bomb_pos)
+    global ai_animating, ai_action_queue, ai_last_step_time, ai_highlight_cell, ai_highlight_type, AI_STEP_MS
     
-    # Then reveal all safe cells
+    # Get all actions from the AI with the selected difficulty
+    actions, _ = take_turn(difficulty, grid, bombs, revealed, flagged, flood_fill)
+    if actions:
+        # Set up animation queue and start animating
+        ai_action_queue = list(actions)
+        ai_animating = True
+        ai_last_step_time = pygame.time.get_ticks()
+        ai_highlight_cell = None
+        ai_highlight_type = None
+        return True
+    
+    # If AI strategy couldn't make any moves, reveal remaining safe cells
     for row in range(board_rows):
         for col in range(board_columns):
             if (row, col) not in bombs and (row, col) not in revealed:
@@ -287,7 +295,18 @@ def main():
     board_columns = 10
     cell_size = (BOARD_WIDTH - 30) // board_columns # Minus 30 for the label margin
 
+    # Initialize game variables
     dark_mode = False # for dark mode button
+    solve_mode = 'easy'  # Initialize solve mode
+    ai_mode = 'off'  # off|easy|medium|hard
+
+    # Animation settings
+    AI_STEP_MS = 500  # delay between animation steps
+    ai_animating = False
+    ai_action_queue = []
+    ai_last_step_time = 0
+    ai_highlight_cell = None
+    ai_highlight_type = None
 
     screen = pygame.display.set_mode((BOARD_WIDTH, BOARD_HEIGHT))
     pygame.display.set_caption("Minesweeper")
@@ -369,16 +388,27 @@ def main():
         
         button_width = 100
         button_height = 30
-        spacing = 15
-        total_width = button_width * 2 + spacing  # Reduced to 2 buttons
+        spacing = 20
+        
+        # Calculate center positions for three centered buttons
+        total_width = button_width * 3 + spacing * 2  # Width for three buttons
         start_x = (BOARD_WIDTH - total_width) // 2
         y = 50
 
         # Define button rectangles for this frame
         solve_button_rect = pygame.Rect(start_x, y, button_width, button_height)
         ai_button_rect = pygame.Rect(start_x + button_width + spacing, y, button_width, button_height)
+        solve_mode_button_rect = pygame.Rect(start_x + 2 * (button_width + spacing), y, button_width, button_height)
         # Dark mode button in top right corner
         dark_button_rect = pygame.Rect(BOARD_WIDTH - button_width - 10, 10, button_width, button_height)
+
+        # Solve Mode button
+        pygame.draw.rect(screen, (220, 220, 220), solve_mode_button_rect)
+        pygame.draw.rect(screen, theme["text"], solve_mode_button_rect, 2)
+        current_solve_mode = getattr(solve_mode, 'capitalize', lambda: 'Easy')()
+        solve_mode_text = bomb_font.render(f"Solve: {current_solve_mode}", True, (0, 0, 0))
+        solve_mode_text_rect = solve_mode_text.get_rect(center=solve_mode_button_rect.center)
+        screen.blit(solve_mode_text, solve_mode_text_rect)
 
         # Auto Solve button
         pygame.draw.rect(screen, (100, 200, 100), solve_button_rect)
@@ -414,6 +444,8 @@ def main():
                 ai_last_step_time = now
                 ai_highlight_cell = (rr, cc)
                 ai_highlight_type = act
+                
+                # Execute the action
                 if act == 'flag':
                     if (rr, cc) not in revealed and (rr, cc) not in flagged:
                         flagged.add((rr, cc))
@@ -424,23 +456,32 @@ def main():
                             # AI hit a bomb: reveal and trigger loss
                             revealed.add((rr, cc))
                             game_over = True
-                            # brief visual cue followed by sounds
-                            bomb_sound.play(); pygame.time.wait(300)
+                            bomb_sound.play()
+                            pygame.time.wait(300)
                             lose_sound.play()
+                            ai_animating = False
                         else:
                             new2 = flood_fill(grid, rr, cc)
                             if new2:
                                 select_sound.play()
                             revealed.update(new2)
-                # If queue emptied or game ended, finalize and check win
-                if (not ai_action_queue) or game_over:
-                    ai_animating = False
-                    if not game_over:
-                        total_safe_cells = board_rows * board_columns - NUM_BOMBS
-                        if len(revealed) == total_safe_cells:
-                            game_won = True
-                            game_over = True
-                            win_sound.play()
+                
+                # If queue is empty and game isn't over, get more moves
+                if not ai_action_queue and not game_over:
+                    # Check for win first
+                    total_safe_cells = board_rows * board_columns - NUM_BOMBS
+                    if len(revealed) == total_safe_cells:
+                        game_won = True
+                        game_over = True
+                        win_sound.play()
+                        ai_animating = False
+                    else:
+                        # Get next set of moves from AI
+                        actions, _ = take_turn(solve_mode, grid, bombs, revealed, flagged, flood_fill)
+                        if actions:
+                            ai_action_queue = list(actions)
+                        else:
+                            ai_animating = False  # No more moves available
 
         # --- INPUT (mouse clicks) ---
         for event in pygame.event.get():
@@ -489,28 +530,37 @@ def main():
                     except ValueError:
                         i = 0
                     ai_mode = modes[(i + 1) % len(modes)]
-                    continue 
+                    continue
+
+                # Check solve mode button
+                if solve_mode_button_rect.collidepoint(mx, my):
+                    modes = ['easy', 'medium', 'hard']
+                    try:
+                        i = modes.index(solve_mode.lower())
+                    except ValueError:
+                        i = 0
+                    solve_mode = modes[(i + 1) % len(modes)]
+                    continue
                 
                 # Check auto-solve button click
                 if not game_over and solve_button_rect.collidepoint(mx, my):
-                    if not first_click:
-                        ai_animating = False
-                        ai_action_queue = []
-                        ai_highlight_cell = None
-                        ai_highlight_type = None
-                        ai_last_step_time = 0
-
-                        if auto_solve(revealed, flagged, bombs, board_rows, board_columns):
-                            game_won = True
-                            game_over = True
-                            win_sound.play()
-
-                            if not game_over:
-                                total_safe_cells = board_rows * board_columns - NUM_BOMBS
-                                if len(revealed) == total_safe_cells:
-                                    game_won = True
-                                    game_over = True
-                                    win_sound.play()
+                    if first_click:
+                        continue  # Must make first move manually
+                        
+                    # Reset animation state
+                    ai_animating = False
+                    ai_action_queue = []
+                    ai_highlight_cell = None
+                    ai_highlight_type = None
+                    ai_last_step_time = 0
+                    
+                    # Get initial moves from AI
+                    actions, _ = take_turn(solve_mode, grid, bombs, revealed, flagged, flood_fill)
+                    if actions:
+                        ai_action_queue = list(actions)
+                        ai_animating = True
+                        ai_last_step_time = pygame.time.get_ticks()
+                        
                     continue
 
                 # Game board clicks (only if not game over)
