@@ -120,6 +120,7 @@ def get_bomb_count():
 BOARD_WIDTH: int = 530
 BOARD_HEIGHT: int = 620
 UI_HEIGHT: int = 120
+LABEL_MARGIN: int = 30  # global margin for labels (was previously reassigned inside loop)
 NUM_BOMBS: int = get_bomb_count()
 
 def generate_bombs(rows: int, cols: int, bomb_count: int) -> set[tuple[int, int]]:
@@ -298,7 +299,8 @@ def main():
     # Initialize game variables
     dark_mode = False # for dark mode button
     solve_mode = 'easy'  # Initialize solve mode
-    ai_mode = 'off'  # off|easy|medium|hard
+    ai_mode = 'off'  # off|easy|medium|hard (off disables any AI assistance)
+    ai_chain = False  # True only during full Auto Solve mode; False for co-op single-turn assist
 
     # Animation settings
     AI_STEP_MS = 500  # delay between animation steps
@@ -329,7 +331,7 @@ def main():
     revealed = set()  # track revealed cells as (row, col) pairs
     flagged = set()   # track flagged cells as (row, col) pairs
     first_click = True
-    ai_mode = 'off'  # off|easy|medium|hard 
+    # ai_mode already initialized above
     running = True
     game_over = False
     game_won = False
@@ -341,6 +343,7 @@ def main():
     AI_STEP_MS = 500  #delay between AI steps 
     ai_highlight_cell = None  
     ai_highlight_type = None
+    ai_chain = False  # ensure reset on new game
 
     # light and dark mode
     light_theme = {
@@ -467,6 +470,10 @@ def main():
                             revealed.update(new2)
                 
                 # If queue is empty and game isn't over, get more moves
+                # Safety: If we're in co-op (ai_chain False) but multiple actions were queued, truncate after first
+                if not ai_chain and ai_action_queue:
+                    ai_action_queue = []  # discard remaining to enforce single-step assist
+                    ai_animating = False
                 if not ai_action_queue and not game_over:
                     # Check for win first
                     total_safe_cells = board_rows * board_columns - NUM_BOMBS
@@ -475,13 +482,21 @@ def main():
                         game_over = True
                         win_sound.play()
                         ai_animating = False
+                        ai_chain = False  # stop chaining after terminal state
                     else:
-                        # Get next set of moves from AI
-                        actions, _ = take_turn(solve_mode, grid, bombs, revealed, flagged, flood_fill)
-                        if actions:
-                            ai_action_queue = list(actions)
+                        # Get next set of moves only if in continuous chain mode (Auto Solve)
+                        if ai_chain:
+                            next_mode = solve_mode  # Auto solve always uses solve_mode difficulty
+                            actions, _ = take_turn(next_mode, grid, bombs, revealed, flagged, flood_fill)
+                            if actions:
+                                ai_action_queue = list(actions)
+                            else:
+                                ai_animating = False  # No more moves available
+                                ai_chain = False
                         else:
-                            ai_animating = False  # No more moves available
+                            # Co-op mode: do NOT automatically request more actions
+                            ai_animating = False
+                            ai_chain = False  # end of a single batch in co-op
 
         # --- INPUT (mouse clicks) ---
         for event in pygame.event.get():
@@ -530,6 +545,10 @@ def main():
                     except ValueError:
                         i = 0
                     ai_mode = modes[(i + 1) % len(modes)]
+                    # Switching AI mode always exits auto-solve chaining
+                    ai_chain = False
+                    ai_animating = False
+                    ai_action_queue = []
                     continue
 
                 # Check solve mode button
@@ -546,13 +565,14 @@ def main():
                 if not game_over and solve_button_rect.collidepoint(mx, my):
                     if first_click:
                         continue  # Must make first move manually
-                        
+                    
                     # Reset animation state
                     ai_animating = False
                     ai_action_queue = []
                     ai_highlight_cell = None
                     ai_highlight_type = None
                     ai_last_step_time = 0
+                    ai_chain = True  # enable continuous chaining for full auto solve
                     
                     # Get initial moves from AI
                     actions, _ = take_turn(solve_mode, grid, bombs, revealed, flagged, flood_fill)
@@ -560,6 +580,8 @@ def main():
                         ai_action_queue = list(actions)
                         ai_animating = True
                         ai_last_step_time = pygame.time.get_ticks()
+                    else:
+                        ai_chain = False  # nothing to chain
                         
                     continue
 
@@ -568,6 +590,11 @@ def main():
                     col = (mx - LABEL_MARGIN) // cell_size
                     row = (my - UI_HEIGHT) // cell_size
                     if 0 <= row < board_rows and 0 <= col < board_columns:
+                        # Any manual board interaction interrupts auto chain
+                        if ai_chain:
+                            ai_chain = False
+                            ai_animating = False
+                            ai_action_queue = []
                         # Right click for flagging
                         if event.button == 3:  # Right click
                             if (row, col) not in revealed:
@@ -610,12 +637,17 @@ def main():
                                             game_over = True
                                             win_sound.play()
                                         if not game_over and ai_mode.lower() != 'off' and not first_click and new_reveals:
-                                            actions, _ = take_turn(ai_mode, grid, bombs, revealed, flagged, flood_fill)  
-                                            ai_action_queue = list(actions)  
-                                            ai_animating = True            
-                                            ai_last_step_time = pygame.time.get_ticks() - AI_STEP_MS  # trigger first step ASAP 
-                                            ai_highlight_cell = None     
-                                            ai_highlight_type = None        
+                                            # Co-op mode: single action only (first suggested move) to avoid appearing as a chain
+                                            ai_chain = False
+                                            actions, _ = take_turn(ai_mode, grid, bombs, revealed, flagged, flood_fill)
+                                            if actions:
+                                                # take only first action to reinforce explicit single-step behavior
+                                                first_action = actions[0]
+                                                ai_action_queue = [first_action]
+                                                ai_animating = True
+                                                ai_last_step_time = pygame.time.get_ticks() - AI_STEP_MS
+                                                ai_highlight_cell = None
+                                                ai_highlight_type = None
                                             # Post-AI win check 
                                             if not game_over:  
                                                 total_safe_cells = board_rows * board_columns - NUM_BOMBS  
@@ -623,10 +655,10 @@ def main():
                                                     game_won = True  
                                                     game_over = True 
                                                     win_sound.play()
+                                                    ai_chain = False
 
 
-        # Create a constant for the label margin
-        LABEL_MARGIN = 30
+    # LABEL_MARGIN is defined globally; removed redundant reassignment here
         
         # Draw column titles (A-J)
         label_font = pygame.font.Font(None, 28) 
