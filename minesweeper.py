@@ -553,7 +553,7 @@ def main():
 
                 # Check solve mode button
                 if solve_mode_button_rect.collidepoint(mx, my):
-                    modes = ['easy', 'medium', 'hard']
+                    modes = ['easy', 'med', 'hard']
                     try:
                         i = modes.index(solve_mode.lower())
                     except ValueError:
